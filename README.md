@@ -1,7 +1,3 @@
-graph TD
-    %% Users
-    User[User / Client]
-    Admin[Admin / Staff]
 
     %% Frontend Layer
     subgraph "Frontend (Client Side)"
