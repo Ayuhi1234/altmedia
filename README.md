@@ -1,35 +1,63 @@
-%% Frontend Layer subgraph "Frontend Layer (Client Side)" UI_User[User Dashboard (dashbord.html)] UI_Auth[Login/Signup (login.html)] UI_Admin[Admin Panel] end
+graph TD
+    %% Users
+    User[User / Client]
+    Admin[Admin / Staff]
 
-%% Interaction User -->|Browser| UI_Auth User -->|Browser| UI_User Admin -->|Browser| UI_Admin
+    %% Frontend Layer
+    subgraph "Frontend (Client Side)"
+        UI_User[User Dashboard<br>(dashbord.html + Firebase SDK)]
+        UI_Auth[Login/Signup<br>(login.html + Firebase SDK)]
+        UI_Admin[Admin Panel<br>(HTML + Firebase SDK)]
+    end
 
-%% API Gateway / Load Balancer API_GW[API Gateway / Routes] UI_User -->|HTTP Requests (JSON)| API_GW UI_Auth -->|HTTP Requests (JSON)| API_GW UI_Admin -->|HTTP Requests (JSON)| API_GW
+    %% Interaction
+    User --> UI_Auth
+    User --> UI_User
+    Admin --> UI_Admin
 
-%% Backend Layer subgraph "Backend Layer (Server)" Auth_Svc[<b>Authentication Module</b>
-Login, OTP, Role Checks] User_Svc[<b>User & KYC Module</b>
-Profile, Docs, Tree Structure] Order_Svc[<b>Order System</b>
-Services, Status, Invoices] Wallet_Svc[<b>Wallet & Income</b>
-Referral (15%), Team (5 Levels), Payouts] Supp_Svc[<b>Support Module</b>
-Tickets, Notifications]
+    %% Firebase Ecosystem
+    subgraph "Firebase Backend (Serverless)"
+        %% Auth
+        FB_Auth[<b>Firebase Authentication</b><br>Manage Users, Roles]
+        
+        %% Database
+        FB_DB[(<b>Firestore NoSQL DB</b><br>Users, Orders, Wallets)]
+        
+        %% Storage
+        FB_Store[<b>Firebase Storage</b><br>KYC Images, PDFs]
 
-%% Logic Connections
-API_GW --&gt; Auth_Svc
-API_GW --&gt; User_Svc
-API_GW --&gt; Order_Svc
-API_GW --&gt; Wallet_Svc
-API_GW --&gt; Supp_Svc
+        %% Logic (Cloud Functions)
+        subgraph "Cloud Functions (Business Logic)"
+            Func_Ref[<b>Referral Trigger</b><br>Calc 15% & 5-Level Team Income]
+            Func_Order[<b>Order Trigger</b><br>On 'Completed' -> Unlock Income]
+            Func_PDF[<b>Invoice Generator</b><br>Create PDF & Upload]
+            Func_Notif[<b>Notification Service</b><br>Send Email/WhatsApp]
+        end
+    end
 
-%% Internal Logic
-Order_Svc --&gt;|Trigger: Order Completed| Wallet_Svc
-Order_Svc --&gt;|Trigger: Generate Invoice| PDF_Eng[PDF Generator Engine]
-end
+    %% Connections - Frontend to Firebase
+    UI_Auth -->|Sign In/Up| FB_Auth
+    UI_User -->|Read/Write Data| FB_DB
+    UI_Admin -->|Approve KYC/Orders| FB_DB
+    UI_User -->|Upload KYC| FB_Store
 
-%% Database Layer subgraph "Database Layer" DB_Users[(Users & KYC Data)] DB_Orders[(Orders & Transactions)] DB_Wallet[(Wallets & Withdrawals)] DB_Logs[(Audit Logs)] end
+    %% Connections - Internal Firebase Triggers
+    FB_DB -.->|Trigger: Order Update| Func_Order
+    FB_DB -.->|Trigger: New User| Func_Ref
+    
+    %% Logic Flow
+    Func_Order -->|Update Wallet| FB_DB
+    Func_Order -->|Trigger PDF| Func_PDF
+    Func_PDF -->|Save PDF| FB_Store
+    Func_PDF -->|Get Download URL| FB_DB
+    Func_Order -->|Send Alert| Func_Notif
 
-%% DB Connections User_Svc <--> DB_Users Order_Svc <--> DB_Orders Wallet_Svc <--> DB_Wallet Auth_Svc <--> DB_Users Supp_Svc <--> DB_Logs
+    %% External Services
+    subgraph "External APIs"
+        Mail_Server[Email Service<br>(SendGrid/Nodemailer)]
+        WA_API[WhatsApp API]
+    end
 
-%% External Services subgraph "External Services" Storage[File Storage (AWS S3/Local)
-KYC Docs, Excel, Invoices] Mail_Server[Email Service (SMTP)
-Invoices, Alerts] WA_API[WhatsApp API
-Notifications] end
-
-%% External Connections User_Svc -->|Upload Docs| Storage PDF_Eng -->|Save PDF| Storage Order_Svc -->|Send Update| WA_API Order_Svc -->|Send Invoice| Mail_Server
+    %% External Connections
+    Func_Notif -->|Send Invoice| Mail_Server
+    Func_Notif -->|Send Update| WA_API
