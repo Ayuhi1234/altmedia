@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYSTEM_ACCESS | LOGIN</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+/* --- CORE TERMINAL THEME --- */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'VT323', monospace;}
+body{ background: #000; color: #0f0; height: 100vh; overflow: hidden; display: flex; justify-content: center; align-items: center; }
+canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; }
+.auth-box { position: relative; z-index: 10; background: #000; border: 2px solid #0f0; padding: 40px; width: 450px; box-shadow: 0 0 20px rgba(0, 255, 0, 0.2); }
+h2 { text-align: center; font-size: 48px; margin-bottom: 10px; text-shadow: 0 0 10px #0f0; text-transform: uppercase; }
+p { text-align: center; color: #00aa00; margin-bottom: 30px; font-size: 20px; }
+.input-group { margin-bottom: 20px; border: 1px dashed #00aa00; padding: 5px; }
+input { width: 100%; background: transparent; border: none; outline: none; color: #0f0; font-size: 24px; padding: 10px; }
+input::placeholder { color: #005500; }
+button { width: 100%; padding: 15px; background: #000; border: 2px solid #0f0; color: #0f0; font-size: 24px; font-family: 'VT323'; text-transform: uppercase; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+button:hover { background: #0f0; color: #000; box-shadow: 0 0 20px #0f0; }
+.link { text-align: center; margin-top: 20px; font-size: 18px; color: #007700; }
+.link span { color: #0f0; cursor: pointer; text-decoration: underline; }
+.hidden { display: none; }
+</style>
+</head>
+<body>
+
+<canvas id="matrixCanvas"></canvas>
+
+<div class="auth-box">
+    <div id="loginBox">
+        <h2>ACCESS_PORTAL</h2>
+        <p>> ENTER CREDENTIALS</p>
+        <div class="input-group"><input type="email" id="loginEmail" placeholder="ENTER_EMAIL_ID"></div>
+        <div class="input-group"><input type="password" id="loginPass" placeholder="ENTER_PASSWORD"></div>
+        <button id="btnLogin">[ INITIATE_LOGIN ]</button>
+        <div class="link"><span onclick="showForgot()">FORGOT_PASSWORD?</span></div>
+        <div class="link">NEW_USER? <span onclick="showSignup()">REGISTER_SYSTEM</span></div>
+    </div>
+
+    <div id="signupBox" class="hidden">
+        <h2>NEW_USER_REG</h2>
+        <p>> CREATE_IDENTITY</p>
+        <div class="input-group"><input type="email" id="signupEmail" placeholder="EMAIL_ADDRESS"></div>
+        <div class="input-group"><input type="text" id="referralCode" placeholder="REF_CODE (OPTIONAL)"></div>
+        <div class="input-group"><input type="password" id="signupPass" placeholder="PASSWORD"></div>
+        <div class="input-group"><input type="password" id="signupConfirm" placeholder="CONFIRM_PASSWORD"></div>
+        <button id="btnSignup">[ ESTABLISH_LINK ]</button>
+        <div class="link">HAS_ID? <span onclick="showLogin()">LOGIN</span></div>
+    </div>
+
+    <div id="forgotBox" class="hidden">
+        <h2>RECOVER_DATA</h2>
+        <p>> RESET_PROTOCOLS</p>
+        <div class="input-group"><input type="email" id="forgotEmail" placeholder="REGISTERED_EMAIL"></div>
+        <button id="btnReset">[ SEND_PACKET ]</button>
+        <div class="link">BACK_TO <span onclick="showLogin()">LOGIN</span></div>
+    </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, sendPasswordResetEmail, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // --- PASTE YOUR FIREBASE CONFIG HERE ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIIcC2ChbaBJFmOdzLoxEINSmBLPcvq8c",
+    authDomain: "altmediia-platform.firebaseapp.com",
+    projectId: "altmediia-platform",
+    storageBucket: "altmediia-platform.firebasestorage.app",
+    messagingSenderId: "586242664887",
+    appId: "1:586242664887:web:b5a8d456b1e9ed15552032",
+    measurementId: "G-PM1GTWZRD7"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+
+  // MATRIX ANIMATION
+  const canvas = document.getElementById('matrixCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const chars = '01'; const fontSize = 16; const columns = canvas.width/fontSize; const drops = Array(Math.floor(columns)).fill(1);
+  function draw() {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace';
+      for(let i=0; i<drops.length; i++) { ctx.fillText(chars.charAt(Math.floor(Math.random()*2)), i*fontSize, drops[i]*fontSize); if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i]=0; drops[i]++; }
+  }
+  setInterval(draw, 33);
+
+  // UI LOGIC
+  window.hideAll = () => { document.getElementById("loginBox").classList.add("hidden"); document.getElementById("signupBox").classList.add("hidden"); document.getElementById("forgotBox").classList.add("hidden"); };
+  window.showLogin = () => { hideAll(); document.getElementById("loginBox").classList.remove("hidden"); };
+  window.showSignup = () => { hideAll(); document.getElementById("signupBox").classList.remove("hidden"); };
+  window.showForgot = () => { hideAll(); document.getElementById("forgotBox").classList.remove("hidden"); };
+
+  // SIGNUP LOGIC
+  document.getElementById("btnSignup").addEventListener("click", async () => {
+    const email = document.getElementById("signupEmail").value;
+    const pass = document.getElementById("signupPass").value;
+    const confirm = document.getElementById("signupConfirm").value;
+    const refCodeInput = document.getElementById("referralCode").value.trim();
+
+    if(pass !== confirm) { alert("ERROR: PASSWORD_MISMATCH"); return; }
+    
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      const user = userCredential.user;
+      let uplineId = null; let ancestors = []; 
+
+      if (refCodeInput) {
+         const q = query(collection(db, "users"), where("myReferralCode", "==", refCodeInput));
+         const snap = await getDocs(q);
+         if (!snap.empty) {
+             uplineId = snap.docs[0].id;
+             ancestors = [uplineId, ...(snap.docs[0].data().ancestors || [])].slice(0, 5);
+         }
+      }
+      
+      const myRefCode = "ALT" + user.uid.slice(-5).toUpperCase();
+      await setDoc(doc(db, "users", user.uid), {
+        email: email, role: "user", myReferralCode: myRefCode,
+        referredBy: uplineId, ancestors: ancestors,
+        fullName: "", bankDetails: "",
+        wallet: { available: 0, pending: 0, totalEarned: 0 },
+        kycStatus: "pending", createdAt: new Date().toISOString(),
+        banned: false
+      });
+      alert("SUCCESS: SYSTEM_REGISTERED."); window.showLogin();
+
+    } catch (error) { alert("FATAL ERROR: " + error.message); }
+  });
+
+  // SECURE LOGIN LOGIC
+  document.getElementById("btnLogin").addEventListener("click", async () => {
+    try {
+      // 1. CHECK MAINTENANCE (Assuming public read access or try/catch fallback)
+      try {
+          const sysSnap = await getDoc(doc(db, "settings", "config"));
+          if (sysSnap.exists() && sysSnap.data().maintenance) {
+              alert("SYSTEM_OFFLINE: MAINTENANCE_IN_PROGRESS");
+              return; 
+          }
+      } catch(e) { console.log("Config check skipped: ", e); }
+
+      // 2. AUTH
+      const cred = await signInWithEmailAndPassword(auth, document.getElementById("loginEmail").value, document.getElementById("loginPass").value);
+      
+      // 3. CHECK BAN STATUS
+      const userDoc = await getDoc(doc(db, "users", cred.user.uid));
+      if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.banned) {
+              alert("ACCESS_DENIED: ACCOUNT_BANNED_BY_ADMIN");
+              await signOut(auth);
+              return;
+          }
+          
+          if (data.role === 'admin') window.location.href = "admin.html";
+          else window.location.href = "dashbord.html";
+      }
+    } catch (error) { alert("ACCESS DENIED: " + error.message); }
+  });
+  
+  document.getElementById("btnReset").addEventListener("click", async () => {
+      try { await sendPasswordResetEmail(auth, document.getElementById("forgotEmail").value); alert("PACKET SENT!"); window.showLogin(); } 
+      catch (error) { alert(error.message); }
+  });
+</script>
+</body>
+</html>

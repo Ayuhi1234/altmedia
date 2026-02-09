@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYSTEM_ROOT | ADMIN</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+/* --- GREEN MATRIX ADMIN --- */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'VT323', monospace;}
+body{ background: #000; color: #0f0; height: 100vh; overflow: hidden; display: flex; }
+canvas#matrixCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; }
+.container{ display: flex; width: 100%; height: 100%; z-index: 10; background: rgba(0, 0, 0, 0.75); }
+.sidebar{ width: 250px; border-right: 2px solid #0f0; padding: 20px; display: flex; flex-direction: column; background: #000; }
+.sidebar h2{ text-align: center; font-size: 32px; border: 2px solid #0f0; padding: 10px; margin-bottom: 30px; text-shadow: 0 0 5px #0f0; }
+.menu-item{ font-size: 22px; padding: 10px; cursor: pointer; border-left: 2px solid transparent; margin-bottom: 5px; color: #00aa00; transition: 0.2s; }
+.menu-item:hover, .menu-item.active{ color: #0f0; border-left: 10px solid #0f0; background: rgba(0, 255, 0, 0.1); }
+.logout{ margin-top: auto; color: #f00 !important; }
+.main{ flex: 1; padding: 30px; overflow-y: auto; }
+.topbar{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #0f0; padding-bottom: 15px; margin-bottom: 30px; }
+.topbar h2{ font-size: 40px; text-transform: uppercase; }
+.badge{ border: 1px solid #0f0; padding: 5px 15px; font-size: 20px; background: #000; }
+.cards{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+.card{ border: 2px solid #0f0; background: #000; padding: 20px; box-shadow: 0 0 10px rgba(0, 255, 0, 0.2); }
+.card h3{ font-size: 24px; color: #00aa00; margin-bottom: 10px; }
+.card p{ font-size: 48px; font-weight: bold; text-shadow: 0 0 10px #0f0; }
+.table-box{ border: 2px solid #0f0; padding: 20px; background: #000; margin-top: 20px; }
+table{ width: 100%; border-collapse: collapse; }
+th{ text-align: left; border-bottom: 2px solid #0f0; padding: 10px; font-size: 24px; color: #00aa00; }
+td{ padding: 15px 10px; border-bottom: 1px dashed #333; font-size: 20px; }
+.btn{ background: #000; color: #0f0; border: 1px solid #0f0; padding: 5px 15px; cursor: pointer; font-family: 'VT323'; font-size: 18px; text-transform: uppercase; margin-right: 10px; }
+.btn:hover{ background: #0f0; color: #000; }
+.btn-deny{ color: #f00; border-color: #f00; } .btn-deny:hover{ background: #f00; color: #000; }
+input { background:#000; border:1px solid #0f0; color:#0f0; padding:5px; font-family:'VT323'; font-size:18px; margin-right:10px; }
+.section{ display: none; } .section.active{ display: block; }
+</style>
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+<div class="container">
+    <div class="sidebar">
+        <h2>SYSTEM_ROOT</h2>
+        <div class="menu-item active" onclick="showSection('overview',this)">> OVERVIEW</div>
+        <div class="menu-item" onclick="showSection('services',this)">> MANAGE_SERVICES</div>
+        <div class="menu-item" onclick="showSection('tasks',this)">> MANAGE_TASKS</div>
+        <div class="menu-item" onclick="showSection('kyc',this)">> KYC_PROTOCOLS</div>
+        <div class="menu-item" onclick="showSection('orders',this)">> ORDER_LOGS</div>
+        <div class="menu-item" onclick="showSection('payouts',this)">> PAYOUT_STREAM</div>
+        <div class="menu-item" onclick="showSection('users',this)">> USER_DATABASE</div>
+        <div class="menu-item" onclick="showSection('tickets',this)">> TICKET_DESK</div>
+        <div class="menu-item" onclick="showSection('news',this)">> NEWS_BROADCAST</div>
+        <div class="menu-item" onclick="showSection('settings',this)">> SYSTEM_CONTROLS</div>
+        <div class="menu-item logout" onclick="logout()">X TERMINATE</div>
+    </div>
+    <div class="main">
+        <div class="topbar"><h2 id="pageTitle">DASHBOARD_V1.0</h2><div class="badge">USER: ADMIN</div></div>
+        
+        <div id="overview" class="section active">
+            <div class="cards">
+                <div class="card"><h3>TOTAL_AGENTS</h3><p id="statUsers">0</p></div>
+                <div class="card"><h3>PENDING_AUTH</h3><p id="statKYC">0</p></div>
+                <div class="card"><h3>ACTIVE_TASKS</h3><p id="statOrders">0</p></div>
+            </div>
+            <div class="card" style="margin-top:20px; background:#050505;"><h3>DATA_VISUALIZATION</h3><canvas id="growthChart" style="max-height:300px;"></canvas></div>
+        </div>
+
+        <div id="services" class="section">
+            <div class="card"><h3>ADD_NEW_SERVICE</h3><br><input id="servName" placeholder="SERVICE_NAME"><input id="servPrice" type="number" placeholder="PRICE"><button class="btn" onclick="addService()">[ UPLOAD ]</button></div>
+            <div class="table-box"><h3>ACTIVE_CATALOG</h3><table><thead><tr><th>NAME</th><th>PRICE</th><th>ACTION</th></tr></thead><tbody id="serviceTableBody"><tr><td colspan="3">LOADING...</td></tr></tbody></table></div>
+        </div>
+
+        <div id="tasks" class="section">
+            <div class="card"><h3>CREATE_NEW_TASK</h3><br><input id="taskName" placeholder="TASK_TITLE"><input id="taskLink" placeholder="TARGET_URL"><input id="taskReward" type="number" placeholder="REWARD (₹)"><button class="btn" onclick="createTask()">[ DEPLOY ]</button></div>
+            <div class="table-box"><h3>ACTIVE_TASKS</h3><table><thead><tr><th>TASK</th><th>REWARD</th><th>ACTION</th></tr></thead><tbody id="taskTableBody"><tr><td colspan="3">LOADING...</td></tr></tbody></table></div>
+        </div>
+        
+        <div id="kyc" class="section">
+            <div class="table-box"><h3>PENDING_VERIFICATIONS</h3><table><thead><tr><th>ID_HASH (EMAIL)</th><th>TIMESTAMP</th><th>EXECUTE</th></tr></thead><tbody id="kycTableBody"><tr><td colspan="3">SCANNING...</td></tr></tbody></table></div>
+        </div>
+        
+        <div id="orders" class="section">
+            <div class="table-box"><h3>ACTIVE_ORDERS</h3><table><thead><tr><th>DETAILS</th><th>UTR (PAYMENT)</th><th>ACTION</th></tr></thead><tbody id="orderTableBody"><tr><td colspan="3">NO_ACTIVE_DATA_STREAM</td></tr></tbody></table></div>
+        </div>
+
+        <div id="payouts" class="section">
+            <div class="table-box"><h3>WITHDRAWAL_REQUESTS</h3><table><thead><tr><th>USER</th><th>METHOD</th><th>AMOUNT</th><th>ACTION</th></tr></thead><tbody id="payoutTableBody"><tr><td colspan="4">SCANNING...</td></tr></tbody></table></div>
+        </div>
+
+        <div id="users" class="section">
+            <div class="card"><h3>USER_DATABASE</h3><br><input id="searchUser" placeholder="SEARCH_EMAIL" style="width:70%"><button class="btn" onclick="searchUser()">[ SEARCH ]</button></div>
+            <div class="table-box"><h3>SEARCH_RESULTS</h3><table><thead><tr><th>EMAIL</th><th>BALANCE</th><th>STATUS</th><th>ACTION</th></tr></thead><tbody id="userTableBody"><tr><td colspan="4">WAITING_FOR_INPUT...</td></tr></tbody></table></div>
+        </div>
+
+        <div id="tickets" class="section">
+            <div class="table-box"><h3>USER_TICKETS</h3><table><thead><tr><th>USER</th><th>SUBJECT</th><th>MESSAGE</th><th>REPLY</th></tr></thead><tbody id="ticketTableBody"><tr><td colspan="4">SCANNING...</td></tr></tbody></table></div>
+        </div>
+
+        <div id="news" class="section">
+            <div class="card"><h3>BROADCAST_NEWS</h3><br><input id="newsText" placeholder="ANNOUNCEMENT_TEXT" style="width:70%"><button class="btn" onclick="postNews()">[ BROADCAST ]</button></div>
+            <div class="table-box"><h3>ACTIVE_NEWS</h3><tbody id="newsTableBody"><tr><td>LOADING...</td></tr></tbody></div>
+        </div>
+
+        <div id="settings" class="section">
+            <div class="card" style="border:1px solid #f00;"><h3 style="color:#f00">DANGER_ZONE</h3><br><p>MAINTENANCE_MODE: <span id="maintStatus" style="color:#fff">OFF</span></p><button class="btn btn-deny" onclick="toggleMaintenance()">[ TOGGLE_LOCKDOWN ]</button></div>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, collection, query, where, getDocs, updateDoc, writeBatch, increment, addDoc, deleteDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // --- PASTE YOUR FIREBASE CONFIG HERE ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIIcC2ChbaBJFmOdzLoxEINSmBLPcvq8c",
+    authDomain: "altmediia-platform.firebaseapp.com",
+    projectId: "altmediia-platform",
+    storageBucket: "altmediia-platform.firebasestorage.app",
+    messagingSenderId: "586242664887",
+    appId: "1:586242664887:web:b5a8d456b1e9ed15552032",
+    measurementId: "G-PM1GTWZRD7"
+  };
+
+  const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
+
+  const canvas = document.getElementById('matrixCanvas'); const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const chars = '01'; const fontSize = 16; const columns = canvas.width/fontSize; const drops = Array(Math.floor(columns)).fill(1);
+  setInterval(() => { ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace'; for(let i=0; i<drops.length; i++) { ctx.fillText(chars.charAt(Math.floor(Math.random()*2)), i*fontSize, drops[i]*fontSize); if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i]=0; drops[i]++; } }, 33);
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if (snap.exists() && snap.data().role === 'admin') { loadData(); checkMaint(); }
+        else { alert("UNAUTHORIZED"); window.location.href = "dashbord.html"; }
+    } else window.location.href = "login.html";
+  });
+
+  async function loadData(){
+      // KYC
+      const kycSnap = await getDocs(query(collection(db, "users"), where("kycStatus", "==", "pending")));
+      let rows = ""; kycSnap.forEach(snap => { rows += `<tr><td>${snap.data().email}</td><td>${snap.data().createdAt.split('T')[0]}</td><td><button class="btn" onclick="actKYC('${snap.id}','approved')">[ AUTH ]</button><button class="btn btn-deny" onclick="actKYC('${snap.id}','rejected')">[ DENY ]</button></td></tr>`; });
+      document.getElementById("kycTableBody").innerHTML = rows || "<tr><td colspan='3'>NO PENDING PROTOCOLS</td></tr>";
+      document.getElementById("statKYC").innerText = kycSnap.size;
+      
+      // ORDERS
+      const orderSnap = await getDocs(query(collection(db, "orders"), where("status", "==", "pending")));
+      let ordRows = ""; orderSnap.forEach(snap => { const o = snap.data(); ordRows += `<tr><td>${o.service}<br><small style="color:#aaa">${o.userEmail}</small></td><td style="color:#fff">₹${o.amount}<br>UTR: ${o.utr||'N/A'}</td><td><button class="btn" onclick="completeOrder('${snap.id}', ${o.amount})">[ VERIFY & PAY ]</button><button class="btn btn-deny" onclick="cancelOrder('${snap.id}')">[ FAKE ]</button></td></tr>`; });
+      document.getElementById("orderTableBody").innerHTML = ordRows || "<tr><td colspan='3'>NO ACTIVE DATA STREAM</td></tr>";
+      document.getElementById("statOrders").innerText = orderSnap.size;
+
+      // PAYOUTS
+      const payoutSnap = await getDocs(query(collection(db, "withdrawals"), where("status", "==", "pending")));
+      let payRows = ""; payoutSnap.forEach(snap => { const p = snap.data(); payRows += `<tr><td>${p.email}</td><td>${p.method}</td><td style="color:#0f0">₹${p.amount}</td><td><button class="btn" onclick="processPayout('${snap.id}')">[ TRANSFER ]</button><button class="btn btn-deny" onclick="rejectPayout('${snap.id}', ${p.amount}, '${p.userId}')">[ REFUND ]</button></td></tr>`; });
+      document.getElementById("payoutTableBody").innerHTML = payRows || "<tr><td colspan='4'>NO PENDING REQUESTS</td></tr>";
+
+      // SERVICES
+      const servSnap = await getDocs(collection(db, "products"));
+      let servRows = ""; servSnap.forEach(snap => { const s = snap.data(); servRows += `<tr><td>${s.name}</td><td>₹${s.price}</td><td><button class="btn btn-deny" onclick="deleteDoc(doc(db,'products','${snap.id}'));loadData()">[ REMOVE ]</button></td></tr>`; });
+      document.getElementById("serviceTableBody").innerHTML = servRows || "<tr><td colspan='3'>CATALOG EMPTY</td></tr>";
+
+      // TASKS
+      const taskSnap = await getDocs(collection(db, "daily_tasks"));
+      let taskRows = ""; taskSnap.forEach(d => { const t = d.data(); taskRows += `<tr><td>${t.name}</td><td style="color:#0f0">₹${t.reward}</td><td><button class="btn btn-deny" onclick="deleteDoc(doc(db,'daily_tasks','${d.id}'));loadData()">[ DELETE ]</button></td></tr>`; });
+      document.getElementById("taskTableBody").innerHTML = taskRows || "<tr><td colspan='3'>NO_TASKS_ACTIVE</td></tr>";
+
+      // TICKETS
+      const tickSnap = await getDocs(query(collection(db, "tickets"), where("status", "==", "open")));
+      let tRows = ""; tickSnap.forEach(d => { const t = d.data(); tRows += `<tr><td><small>${t.userId}</small></td><td>${t.subject}</td><td>${t.message}</td><td><button class="btn" onclick="replyTicket('${d.id}')">[ REPLY ]</button></td></tr>`; });
+      document.getElementById("ticketTableBody").innerHTML = tRows || "<tr><td colspan='4'>NO_TICKETS</td></tr>";
+
+      // NEWS
+      const newsSnap = await getDocs(collection(db, "announcements"));
+      let nRows = ""; newsSnap.forEach(d => { nRows += `<tr><td style="color:#aaa">${d.data().text} <button class="btn-deny" style="font-size:12px; float:right" onclick="deleteDoc(doc(db,'announcements','${d.id}'));loadData()">X</button></td></tr>`; });
+      document.getElementById("newsTableBody").innerHTML = nRows;
+
+      const all = await getDocs(collection(db, "users")); document.getElementById("statUsers").innerText = all.size;
+
+      const ctx = document.getElementById('growthChart').getContext('2d');
+      new Chart(ctx, { type: 'bar', data: { labels: ['Users', 'Active Orders', 'Pending KYC', 'Payouts'], datasets: [{ label: 'System Metrics', data: [all.size, orderSnap.size, kycSnap.size, payoutSnap.size], backgroundColor: ['#0f0', '#005500', '#00aa00', '#00ff00'], borderWidth: 1 }] }, options: { scales: { y: { beginAtZero: true, ticks: { color: '#0f0' } }, x: { ticks: { color: '#0f0' } } }, plugins: { legend: { labels: { color: '#0f0' } } } } });
+  }
+
+  window.addService = async () => { const name = document.getElementById("servName").value; const price = parseFloat(document.getElementById("servPrice").value); if(!name || !price) return alert("MISSING DATA"); await addDoc(collection(db, "products"), { name, price }); alert("SERVICE ADDED"); loadData(); };
+  window.createTask = async () => { const name = document.getElementById("taskName").value; const link = document.getElementById("taskLink").value; const reward = parseFloat(document.getElementById("taskReward").value); if(!name || !link || !reward) return alert("DATA_MISSING"); await addDoc(collection(db, "daily_tasks"), { name, link, reward, createdAt: new Date().toISOString() }); alert("TASK_DEPLOYED"); loadData(); };
+  window.postNews = async () => { const text = document.getElementById("newsText").value; if(!text) return; await addDoc(collection(db, "announcements"), { text }); alert("BROADCAST SENT"); loadData(); };
+  window.replyTicket = async (id) => { const reply = prompt("ENTER REPLY:"); if(reply) { await updateDoc(doc(db, "tickets", id), { status: "closed", reply: reply }); alert("REPLY SENT"); loadData(); } };
+
+  window.actKYC = async (uid, status) => { if(confirm("CONFIRM PROTOCOL?")) { await updateDoc(doc(db, "users", uid), { kycStatus: status }); loadData(); } };
+  window.cancelOrder = async (oid) => { if(confirm("ABORT TASK?")) { await updateDoc(doc(db, "orders", oid), { status: "cancelled" }); loadData(); } };
+  window.completeOrder = async (orderId, amount) => { if(!confirm(`VERIFY PAYMENT & DISTRIBUTE COMMISSION?`)) return; try { const orderRef = doc(db, "orders", orderId); const orderSnap = await getDoc(orderRef); const comms = orderSnap.data().commissionMap; const batch = writeBatch(db); if(comms.direct){ batch.update(doc(db, "users", comms.direct), { "wallet.totalEarned": increment(amount*0.15), "wallet.available": increment(amount*0.15) }); } if(comms.team && comms.team.length > 0){ comms.team.slice(0,5).forEach(uid => { batch.update(doc(db, "users", uid), { "wallet.totalEarned": increment(amount*0.01), "wallet.available": increment(amount*0.01) }); }); } batch.update(orderRef, { status: "completed" }); await batch.commit(); alert("DISTRIBUTION COMPLETE."); loadData(); } catch(e) { alert("ERROR: " + e.message); } };
+  window.processPayout = async (id) => { if(confirm("MARK AS PAID?")) { await updateDoc(doc(db, "withdrawals", id), { status: "paid" }); loadData(); } };
+  window.rejectPayout = async (id, amount, userId) => { if(confirm("REJECT & REFUND?")) { const batch = writeBatch(db); batch.update(doc(db, "withdrawals", id), { status: "rejected" }); batch.update(doc(db, "users", userId), { "wallet.available": increment(amount) }); await batch.commit(); loadData(); } };
+
+  window.searchUser = async () => { const email = document.getElementById("searchUser").value; const q = query(collection(db, "users"), where("email", "==", email)); const snap = await getDocs(q); let html = ""; snap.forEach(d => { const u = d.data(); const status = u.banned ? "<span style='color:red'>BANNED</span>" : "<span style='color:#0f0'>ACTIVE</span>"; const action = u.banned ? `<button class="btn" onclick="banUser('${d.id}', false)">[ UNBAN ]</button>` : `<button class="btn btn-deny" onclick="banUser('${d.id}', true)">[ BAN ]</button>`; html += `<tr><td>${u.email}</td><td>₹${u.wallet.available}</td><td>${status}</td><td>${action}</td></tr>`; }); document.getElementById("userTableBody").innerHTML = html || "<tr><td colspan='4'>USER_NOT_FOUND</td></tr>"; };
+  window.banUser = async (uid, state) => { if(confirm(`CHANGE BAN STATUS TO: ${state}?`)) { await updateDoc(doc(db, "users", uid), { banned: state }); alert("STATUS_UPDATED"); searchUser(); } };
+  
+  window.toggleMaintenance = async () => { const docRef = doc(db, "settings", "config"); const snap = await getDoc(docRef); const current = snap.exists() ? snap.data().maintenance : false; await setDoc(docRef, { maintenance: !current }); alert(`MAINTENANCE_MODE: ${!current ? 'ON' : 'OFF'}`); checkMaint(); };
+  async function checkMaint() { const snap = await getDoc(doc(db, "settings", "config")); const status = snap.exists() && snap.data().maintenance; document.getElementById("maintStatus").innerText = status ? "ON (LOCKED)" : "OFF (ACTIVE)"; document.getElementById("maintStatus").style.color = status ? "red" : "#0f0"; }
+
+  window.logout = () => signOut(auth).then(() => window.location.href="login.html");
+  window.showSection = (id, el) => { document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); document.querySelectorAll('.menu-item').forEach(li => li.classList.remove('active')); el.classList.add('active'); };
+</script>
+</body>
+</html>

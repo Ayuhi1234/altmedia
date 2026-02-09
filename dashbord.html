@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SYSTEM_ROOT | DASHBOARD</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+<style>
+/* --- GREEN MATRIX THEME --- */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'VT323', monospace;}
+body{ background: #000; color: #0f0; height: 100vh; overflow: hidden; display: flex; }
+canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; opacity: 0.8; }
+.container{ display: flex; width: 100%; height: 100%; z-index: 10; background: rgba(0, 0, 0, 0.75); }
+.sidebar{ width: 250px; border-right: 2px solid #0f0; padding: 20px; display: flex; flex-direction: column; background: #000; }
+.sidebar h2{ text-align: center; font-size: 32px; border: 2px solid #0f0; padding: 10px; margin-bottom: 20px; text-shadow: 0 0 5px #0f0; }
+.rank-display { text-align:center; margin-bottom:20px; border-bottom:1px dashed #0f0; padding-bottom:10px; color:#fff; font-size:20px; }
+.menu-item{ font-size: 22px; padding: 10px; cursor: pointer; border-left: 2px solid transparent; margin-bottom: 5px; color: #00aa00; transition: 0.2s; }
+.menu-item:hover, .menu-item.active{ color: #0f0; border-left: 10px solid #0f0; background: rgba(0, 255, 0, 0.1); }
+.logout{ margin-top: auto; color: #f00 !important; }
+.main{ flex: 1; padding: 30px; overflow-y: auto; }
+.topbar{ display: flex; justify-content: space-between; align-items: center; border-bottom: 2px dashed #0f0; padding-bottom: 15px; margin-bottom: 30px; }
+.topbar h2{ font-size: 40px; text-transform: uppercase; }
+.badge{ border: 1px solid #0f0; padding: 5px 15px; font-size: 20px; background: #000; }
+.cards{ display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+.card{ border: 2px solid #0f0; background: #000; padding: 20px; box-shadow: 0 0 10px rgba(0, 255, 0, 0.2); }
+.card h3{ font-size: 24px; color: #00aa00; margin-bottom: 10px; }
+.card p{ font-size: 48px; font-weight: bold; text-shadow: 0 0 10px #0f0; }
+.service-item { border: 1px dashed #0f0; padding: 15px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; }
+.btn-buy { background: #0f0; color: #000; border: none; padding: 5px 15px; font-weight: bold; cursor: pointer; font-family: 'VT323'; font-size: 20px; }
+.btn-buy:hover { box-shadow: 0 0 15px #0f0; }
+input, textarea { width: 100%; background: #000; border: 1px solid #0f0; color: #0f0; font-size: 24px; padding: 10px; margin-bottom: 10px; font-family: 'VT323'; outline:none; }
+.section{ display: none; } .section.active{ display: block; }
+.marquee { background: rgba(0,255,0,0.1); border:1px solid #0f0; color:#fff; padding:5px; margin-bottom:20px; font-size:20px; white-space: nowrap; overflow: hidden; }
+table{ width: 100%; border-collapse: collapse; }
+th{ text-align: left; border-bottom: 2px solid #0f0; padding: 10px; font-size: 24px; color: #00aa00; }
+td{ padding: 15px 10px; border-bottom: 1px dashed #333; font-size: 20px; }
+</style>
+</head>
+<body>
+<canvas id="matrixCanvas"></canvas>
+<div class="container">
+    <div class="sidebar">
+        <h2>ALTMEDIIA</h2>
+        <div class="rank-display">RANK: <span id="userRank" style="color:#FFD700">CALCULATING...</span></div>
+        <div class="menu-item active" onclick="showSection('dashboard',this)">> DASHBOARD</div>
+        <div class="menu-item" onclick="showSection('services',this)">> SERVICES</div>
+        <div class="menu-item" onclick="showSection('tasks',this)">> DAILY_TASKS</div>
+        <div class="menu-item" onclick="showSection('leaderboard',this)">> TOP_AGENTS</div>
+        <div class="menu-item" onclick="showSection('profile',this)">> IDENTITY</div>
+        <div class="menu-item" onclick="showSection('referral',this)">> TEAM</div>
+        <div class="menu-item" onclick="showSection('wallet',this)">> WALLET</div>
+        <div class="menu-item" onclick="showSection('support',this)">> SUPPORT</div>
+        <div class="menu-item" onclick="showSection('settings',this)">> SETTINGS</div>
+        <div class="menu-item logout" onclick="logout()">X DISCONNECT</div>
+    </div>
+    <div class="main">
+        <div class="marquee"><marquee id="newsFeed">SYSTEM INITIALIZED...</marquee></div>
+        <div class="topbar"><h2 id="pageTitle">OVERVIEW</h2><div class="badge" id="userEmailDisplay">LOADING...</div></div>
+
+        <div id="dashboard" class="section active">
+            <div class="cards">
+                <div class="card"><h3>TOTAL_EARNED</h3><p id="totalEarned">₹0</p></div>
+                <div class="card"><h3>AVAILABLE</h3><p id="walletBal">₹0</p></div>
+                <div class="card"><h3>PENDING</h3><p id="pendingBal">₹0</p></div>
+                <div class="card"><h3>KYC_STATUS</h3><p id="kycStatus">--</p></div>
+            </div>
+        </div>
+
+        <div id="services" class="section">
+            <div class="card"><h3>AVAILABLE_PACKETS</h3><br><div id="servicesList">LOADING_CATALOG...</div></div>
+        </div>
+        
+        <div id="tasks" class="section">
+            <div class="card"><h3>AVAILABLE_MISSIONS</h3><br><div id="taskListUser">LOADING_DATA_STREAM...</div></div>
+        </div>
+
+        <div id="leaderboard" class="section">
+            <div class="card"><h3>ELITE_AGENTS (TOP 5)</h3><br><table><thead><tr><th>RANK</th><th>AGENT</th><th>TOTAL_EARNED</th></tr></thead><tbody id="topAgentsList"><tr><td colspan="3">SCANNING_DATABASE...</td></tr></tbody></table></div>
+        </div>
+
+        <div id="profile" class="section">
+            <div class="card">
+                <h3>AGENT_IDENTITY</h3><br>
+                <label style="color:#00aa00">SYSTEM_EMAIL</label><input id="profEmail" readonly style="color:#555">
+                <label style="color:#00aa00">FULL_NAME</label><input id="profName" placeholder="ENTER_REAL_NAME">
+                <label style="color:#00aa00">PAYOUT_DETAILS</label><input id="profBank" placeholder="e.g. 9876543210@ybl">
+                <button class="btn-buy" onclick="updateProfile()">[ SAVE_DATA ]</button>
+            </div>
+            <div class="card" style="margin-top:20px; border-top:1px dashed #005500;"><h3>SECURITY_LOGS</h3><br><div id="activityLogs" style="font-size:16px; color:#aaa;">LOADING...</div></div>
+        </div>
+
+        <div id="referral" class="section">
+            <div class="card"><h3>UPLINK_NODE</h3><p style="font-size:24px; margin-top:10px;" id="refLink">GENERATING...</p></div>
+            <div class="card" style="margin-top:20px"><h3>MY_DOWNLINE_AGENTS</h3><div id="teamList" style="margin-top:10px; font-size:20px; color:#aaa;">LOADING_TEAM_DATA...</div></div>
+        </div>
+
+        <div id="wallet" class="section">
+            <div class="cards" style="margin-bottom:20px;">
+                <div class="card"><h3>AVAILABLE_FUNDS</h3><p id="walletBal2" style="color:#0f0">₹0</p></div>
+            </div>
+            <div class="card" style="border:1px solid #0f0;">
+                <h3>EXTERNAL_WITHDRAWAL (BANK/UPI)</h3><br>
+                <input id="withdrawMethod" placeholder="ENTER_UPI_ID_OR_BANK"><input id="withdrawAmount" type="number" placeholder="ENTER_AMOUNT"><button class="btn-buy" style="width:100%" onclick="requestWithdrawal()">[ INITIATE_BANK_TRANSFER ]</button>
+            </div>
+            <div class="card" style="margin-top:20px; border:1px solid #005500;">
+                <h3>INTERNAL_TRANSFER (P2P)</h3>
+                <p style="font-size:14px; color:#aaa; margin-bottom:10px;">SEND FUNDS INSTANTLY TO ANOTHER USER</p>
+                <input id="p2pEmail" placeholder="RECEIVER_EMAIL"><input id="p2pAmount" type="number" placeholder="AMOUNT_TO_SEND"><button class="btn-buy" style="width:100%; background:#005500; color:#fff;" onclick="p2pTransfer()">[ SEND_FUNDS ]</button>
+            </div>
+            <div class="card" style="margin-top:20px;"><h3>TRANSACTION_LOGS</h3><br><div id="withdrawHistory" style="font-size:20px; color:#aaa;">LOADING...</div></div>
+        </div>
+
+        <div id="support" class="section">
+            <div class="card"><h3>OPEN_NEW_TICKET</h3><br><input id="ticketSubject" placeholder="SUBJECT"><textarea id="ticketMsg" rows="3" placeholder="MESSAGE" style="width:100%; background:#000; border:1px solid #0f0; color:#0f0; font-family:'VT323'; font-size:20px; padding:10px;"></textarea><button class="btn-buy" onclick="createTicket()">[ TRANSMIT_TICKET ]</button></div>
+            <div class="card" style="margin-top:20px;"><h3>TICKET_HISTORY</h3><br><div id="ticketHistory" style="font-size:20px;">LOADING_LOGS...</div></div>
+        </div>
+
+        <div id="settings" class="section">
+            <div class="card">
+                <h3>SECURITY_PROTOCOLS</h3><br>
+                <div style="margin-bottom:20px; border-bottom:1px dashed #333; padding-bottom:20px;">
+                    <label style="color:#00aa00">CHANGE_PASSWORD</label><input type="password" id="newPass" placeholder="NEW_PASSWORD"><button class="btn-buy" onclick="changePass()">[ UPDATE_KEY ]</button>
+                </div>
+                <div>
+                    <label style="color:#00aa00">PRIVACY_MODE (HIDE EMAIL)</label><br>
+                    <button class="btn-buy" id="privacyBtn" onclick="togglePrivacy()" style="background:#333; border-color:#555">OFF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="payModal" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:100; display:none; justify-content:center; align-items:center; background:rgba(0,0,0,0.9);">
+    <div class="card" style="width:400px; border:2px solid #0f0; background:#000;">
+        <h3 style="text-align:center; color:#fff;">SECURE_PAYMENT_GATEWAY</h3>
+        <div style="background:rgba(0,255,0,0.1); padding:10px; margin-bottom:15px; text-align:center; border:1px dashed #0f0;">
+            <span style="color:#aaa; font-size:16px;">SEND PAYMENT TO UPI:</span><br>
+            <b style="color:#fff; font-size:24px; letter-spacing:1px;">admin@upi</b>
+        </div>
+        <input id="payAmount" readonly style="color:#aaa; border-color:#555;">
+        <input id="payUTR" placeholder="ENTER_TRANSACTION_ID (UTR)">
+        <div style="display:flex; gap:10px;">
+            <button class="btn-buy" onclick="confirmOrder()" style="width:100%">[ CONFIRM ]</button>
+            <button class="btn-buy" onclick="closeModal()" style="width:100%; background:#333; color:#fff; border-color:#555;">[ CANCEL ]</button>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getAuth, onAuthStateChanged, signOut, updatePassword } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+  import { getFirestore, doc, getDoc, collection, addDoc, writeBatch, increment, query, where, getDocs, updateDoc, setDoc, orderBy, limit, runTransaction } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+  // --- PASTE YOUR FIREBASE CONFIG HERE ---
+  const firebaseConfig = {
+    apiKey: "AIzaSyAIIcC2ChbaBJFmOdzLoxEINSmBLPcvq8c",
+    authDomain: "altmediia-platform.firebaseapp.com",
+    projectId: "altmediia-platform",
+    storageBucket: "altmediia-platform.firebasestorage.app",
+    messagingSenderId: "586242664887",
+    appId: "1:586242664887:web:b5a8d456b1e9ed15552032",
+    measurementId: "G-PM1GTWZRD7"
+  };
+
+  const app = initializeApp(firebaseConfig); const auth = getAuth(app); const db = getFirestore(app);
+
+  const canvas = document.getElementById('matrixCanvas'); const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+  const chars = '01'; const fontSize = 16; const columns = canvas.width/fontSize; const drops = Array(Math.floor(columns)).fill(1);
+  setInterval(() => { ctx.fillStyle = 'rgba(0, 0, 0, 0.05)'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.fillStyle = '#0F0'; ctx.font = fontSize + 'px monospace'; for(let i=0; i<drops.length; i++) { ctx.fillText(chars.charAt(Math.floor(Math.random()*2)), i*fontSize, drops[i]*fontSize); if(drops[i]*fontSize > canvas.height && Math.random() > 0.975) drops[i]=0; drops[i]++; } }, 33);
+
+  let currentService = ""; let currentPrice = 0;
+
+  onAuthStateChanged(auth, async (user) => {
+    if (user) {
+      document.getElementById("userEmailDisplay").innerText = user.email.split('@')[0].toUpperCase();
+      loadNews(); logActivity(user.uid, "LOGIN_DETECTED");
+      const snap = await getDoc(doc(db, "users", user.uid));
+      if (snap.exists()) {
+        const d = snap.data();
+        const earned = d.wallet.totalEarned || 0;
+        document.getElementById("totalEarned").innerText = "₹" + earned;
+        document.getElementById("walletBal").innerText = "₹" + (d.wallet.available || 0);
+        document.getElementById("walletBal2").innerText = "₹" + (d.wallet.available || 0);
+        document.getElementById("pendingBal").innerText = "₹" + (d.wallet.pending || 0);
+        document.getElementById("kycStatus").innerText = (d.kycStatus || "PENDING").toUpperCase();
+        document.getElementById("profEmail").value = d.email;
+        document.getElementById("profCode").value = d.myReferralCode;
+        document.getElementById("profName").value = d.fullName || "";
+        document.getElementById("profBank").value = d.bankDetails || "";
+        document.getElementById("refLink").innerText = "altmediia.com?ref=" + d.myReferralCode;
+        
+        let rank = "INITIATE"; if(earned > 1000) rank = "OPERATOR"; if(earned > 10000) rank = "ARCHITECT"; if(earned > 50000) rank = "THE_ONE";
+        document.getElementById("userRank").innerText = rank;
+
+        loadWithdrawHistory(user.uid); loadServices(); loadTeam(user.uid); loadUserTasks(user.uid); loadTickets(user.uid); loadLeaderboard(); loadLogs(user.uid); checkPrivacy();
+      }
+    } else window.location.href = "login.html";
+  });
+
+  async function loadNews() { const snap = await getDocs(collection(db, "announcements")); let news = "SYSTEM_ONLINE... "; snap.forEach(d => { news += `+++ ${d.data().text} +++ `; }); document.getElementById("newsFeed").innerText = news; }
+  async function loadTickets(uid) { const q = query(collection(db, "tickets"), where("userId", "==", uid)); const snap = await getDocs(q); let html = ""; snap.forEach(d => { const t = d.data(); const reply = t.reply ? `<br><span style="color:#fff">> ADMIN: ${t.reply}</span>` : ""; html += `<div style="border-bottom:1px solid #333; padding:10px; margin-bottom:10px;"><b style="color:#fff">${t.subject}</b> - <span style="color:${t.status==='open'?'#ffa500':'#0f0'}">${t.status.toUpperCase()}</span><p style="margin:5px 0; color:#aaa;">${t.message}</p>${reply}</div>`; }); document.getElementById("ticketHistory").innerHTML = html || "NO_TICKETS_FOUND"; }
+  async function loadServices() { const snap = await getDocs(collection(db, "products")); let html = ""; snap.forEach(d => { const s = d.data(); html += `<div class="service-item"><div><h4>${s.name}</h4></div><div style="text-align:right;"><span style="font-size:24px; margin-right:10px;">₹${s.price}</span><button class="btn-buy" onclick="placeOrder('${s.name}', ${s.price})">[ ACQUIRE ]</button></div></div>`; }); document.getElementById("servicesList").innerHTML = html || "CATALOG_EMPTY"; }
+  async function loadTeam(uid) { const q = query(collection(db, "users"), where("referredBy", "==", uid)); const snap = await getDocs(q); let html = ""; snap.forEach(d => { html += `<div style="border-bottom:1px dashed #333; padding:5px;">${d.data().email} <span style="float:right; color:#00aa00">[ AGENT ]</span></div>`; }); document.getElementById("teamList").innerHTML = html || "NO_AGENTS_RECRUITED"; }
+  async function loadUserTasks(uid) { const taskSnap = await getDocs(collection(db, "daily_tasks")); const doneSnap = await getDocs(query(collection(db, "task_logs"), where("userId", "==", uid))); const doneIds = []; doneSnap.forEach(d => doneIds.push(d.data().taskId)); let html = ""; taskSnap.forEach(d => { const t = d.data(); if(doneIds.includes(d.id)) { html += `<div class="service-item" style="opacity:0.5"><div><h4>${t.name}</h4></div><div><span style="color:#aaa">[ COMPLETED ]</span></div></div>`; } else { html += `<div class="service-item"><div><h4>${t.name}</h4><p style="font-size:16px; margin:0; color:#00aa00">Reward: ₹${t.reward}</p></div><div><button class="btn-buy" id="btn-${d.id}" onclick="startTask('${d.id}', '${t.link}', ${t.reward})">[ START ]</button></div></div>`; } }); document.getElementById("taskListUser").innerHTML = html || "NO_MISSIONS_AVAILABLE"; }
+  async function logActivity(uid, action) { await addDoc(collection(db, "activity_logs"), { userId: uid, action: action, date: new Date().toISOString() }); }
+  async function loadLogs(uid) { const q = query(collection(db, "activity_logs"), where("userId", "==", uid), orderBy("date", "desc"), limit(5)); const snap = await getDocs(q); let html = ""; snap.forEach(d => { html += `<div>[${d.data().date.slice(0,10)}] ${d.data().action}</div>`; }); document.getElementById("activityLogs").innerHTML = html || "NO_DATA"; }
+  async function loadLeaderboard() { const q = query(collection(db, "users"), orderBy("wallet.totalEarned", "desc"), limit(5)); const snap = await getDocs(q); let html = ""; let rank = 1; snap.forEach(d => { const u = d.data(); const email = u.privacyMode ? "HIDDEN_AGENT" : (u.email.substring(0, 3) + "***"); let badge = ""; if(rank===1) badge="👑 THE_ONE"; else if(rank===2) badge="⚔️ COMMANDER"; else badge="⚡ AGENT"; html += `<tr><td>#${rank}</td><td>${email} <br><small style="color:#aaa">${badge}</small></td><td style="color:#0f0; font-weight:bold;">₹${u.wallet.totalEarned}</td></tr>`; rank++; }); document.getElementById("topAgentsList").innerHTML = html || "NO_DATA"; }
+  async function checkPrivacy() { const snap = await getDoc(doc(db, "users", auth.currentUser.uid)); const status = snap.data().privacyMode; const btn = document.getElementById("privacyBtn"); btn.innerText = status ? "ON (HIDDEN)" : "OFF (VISIBLE)"; btn.style.borderColor = status ? "#0f0" : "#555"; btn.style.color = status ? "#0f0" : "#aaa"; }
+
+  window.p2pTransfer = async () => { const email = document.getElementById("p2pEmail").value.trim(); const amount = parseFloat(document.getElementById("p2pAmount").value); const sender = auth.currentUser; if(!email || !amount || amount <= 0) return alert("INVALID_DATA"); if(email === sender.email) return alert("CANNOT_SEND_TO_SELF"); if(!confirm(`TRANSFER ₹${amount} TO ${email}?`)) return; try { await runTransaction(db, async (transaction) => { const q = query(collection(db, "users"), where("email", "==", email)); const receiverSnap = await getDocs(q); if(receiverSnap.empty) throw "USER_NOT_FOUND"; const receiverDoc = receiverSnap.docs[0].ref; const senderRef = doc(db, "users", sender.uid); const senderSnap = await transaction.get(senderRef); if((senderSnap.data().wallet.available || 0) < amount) throw "INSUFFICIENT_FUNDS"; transaction.update(senderRef, { "wallet.available": increment(-amount) }); transaction.update(receiverDoc, { "wallet.available": increment(amount) }); }); alert("TRANSFER SUCCESSFUL."); location.reload(); } catch(e) { alert("TRANSACTION FAILED: " + e); } };
+  window.startTask = async (taskId, link, reward) => { const btn = document.getElementById(`btn-${taskId}`); window.open(link, '_blank'); let timeLeft = 10; btn.disabled = true; const timer = setInterval(async () => { btn.innerText = `[ VERIFYING... ${timeLeft}s ]`; timeLeft--; if(timeLeft < 0) { clearInterval(timer); try { const batch = writeBatch(db); batch.update(doc(db, "users", auth.currentUser.uid), { "wallet.totalEarned": increment(reward), "wallet.available": increment(reward) }); batch.set(doc(collection(db, "task_logs")), { userId: auth.currentUser.uid, taskId: taskId, date: new Date().toISOString() }); await batch.commit(); alert(`SUCCESS: ₹${reward} CREDITED.`); loadUserTasks(auth.currentUser.uid); } catch(e) { alert("ERROR"); btn.disabled = false; btn.innerText = "[ RETRY ]"; } } }, 1000); };
+  window.createTicket = async () => { const sub = document.getElementById("ticketSubject").value; const msg = document.getElementById("ticketMsg").value; if(!sub || !msg) return alert("EMPTY_FIELDS"); await addDoc(collection(db, "tickets"), { userId: auth.currentUser.uid, subject: sub, message: msg, status: "open", reply: "", date: new Date().toISOString() }); alert("TICKET_LOGGED"); loadTickets(auth.currentUser.uid); };
+  window.placeOrder = (serviceName, price) => { currentService = serviceName; currentPrice = price; document.getElementById("payAmount").value = "AMOUNT: ₹" + price; document.getElementById("payModal").style.display = "flex"; };
+  window.closeModal = () => { document.getElementById("payModal").style.display = "none"; document.getElementById("payUTR").value = ""; };
+  window.confirmOrder = async () => { const utr = document.getElementById("payUTR").value; if(!utr) return alert("ERROR: TRANSACTION_ID_REQUIRED"); const user = auth.currentUser; const userData = (await getDoc(doc(db, "users", user.uid))).data(); await addDoc(collection(db, "orders"), { userId: user.uid, userEmail: user.email, service: currentService, amount: currentPrice, utr: utr, status: "pending", date: new Date().toISOString(), commissionMap: { direct: userData.referredBy || null, team: userData.ancestors || [] } }); alert("PAYMENT_VERIFICATION_PENDING"); closeModal(); };
+  window.updateProfile = async () => { await updateDoc(doc(db, "users", auth.currentUser.uid), { fullName: document.getElementById("profName").value, bankDetails: document.getElementById("profBank").value }); alert("DATABASE_UPDATED"); };
+  window.requestWithdrawal = async () => { const amount = parseFloat(document.getElementById("withdrawAmount").value); if((await getDoc(doc(db, "users", auth.currentUser.uid))).data().wallet.available < amount) return alert("LOW_FUNDS"); const batch = writeBatch(db); batch.update(doc(db, "users", auth.currentUser.uid), { "wallet.available": increment(-amount) }); batch.set(doc(collection(db, "withdrawals")), { userId: auth.currentUser.uid, email: auth.currentUser.email, amount: amount, method: document.getElementById("withdrawMethod").value, status: "pending", date: new Date().toISOString() }); await batch.commit(); alert("REQUEST_TRANSMITTED."); location.reload(); };
+  async function loadWithdrawHistory(uid) { const snap = await getDocs(query(collection(db, "withdrawals"), where("userId", "==", uid))); let html = ""; snap.forEach(d => { const data = d.data(); html += `<div style="display:flex; justify-content:space-between; border-bottom:1px dashed #333; padding:5px; margin-bottom:5px;"><span>₹${data.amount}</span> <span style="color:${data.status==='paid'?'#0f0':'#ffa500'}">${data.status.toUpperCase()}</span></div>`; }); document.getElementById("withdrawHistory").innerHTML = html || "NO_LOGS_FOUND"; }
+  window.changePass = async () => { const newPass = document.getElementById("newPass").value; if(newPass.length < 6) return alert("WEAK_PASSWORD"); try { await updatePassword(auth.currentUser, newPass); alert("PASSWORD_UPDATED"); window.logout(); } catch(e) { alert("ERROR: " + e.message); } };
+  window.togglePrivacy = async () => { const userRef = doc(db, "users", auth.currentUser.uid); const current = (await getDoc(userRef)).data().privacyMode || false; await updateDoc(userRef, { privacyMode: !current }); alert("UPDATED"); checkPrivacy(); };
+
+  window.logout = () => signOut(auth).then(() => window.location.href="login.html");
+  window.showSection = (id, el) => { document.querySelectorAll('.section').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); document.querySelectorAll('.menu-item').forEach(li => li.classList.remove('active')); el.classList.add('active'); document.getElementById("pageTitle").innerText = el.innerText.replace("> ", ""); };
+</script>
+</body>
+</html>
